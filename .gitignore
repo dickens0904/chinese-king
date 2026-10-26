@@ -1,0 +1,86 @@
+# 语文小霸王 - Git忽略文件
+
+# 依赖目录
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 构建输出
+dist/
+build/
+out/
+
+# 环境变量
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 日志文件
+logs/
+*.log
+
+# 运行时数据
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# 编辑器配置
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Electron打包缓存
+.electron-builder/
+
+# 临时文件
+tmp/
+temp/
+
+# 用户数据
+userData/
+userSettings/
+
+# 测试覆盖率
+coverage/
+.nyc_output/
+
+# 缓存
+.cache/
+.parcel-cache/
+
+# 构建工具缓存
+.webpack/
+.eslintcache/
+
+# 本地配置
+*.local
+
+# 敏感信息
+*.pem
+*.key
+*.cert
+
+# 调试文件
+.debug/
+
+# 性能分析
+*.prof
+
+# 依赖锁文件（可选，如果团队使用不同包管理器）
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+app-data/
+cyber-ppt-tmp/

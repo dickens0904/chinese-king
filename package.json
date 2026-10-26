@@ -1,0 +1,79 @@
+{
+  "name": "yuwen-xiaobawang",
+  "version": "1.0.0",
+  "description": "语文小霸王 - 小学语文课外学习软件",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir",
+    "prepare": "husky",
+    "lint": "npx eslint .",
+    "lint:fix": "npx eslint . --fix",
+    "format": "npx prettier --write .",
+    "format:check": "npx prettier --check .",
+    "test": "npx jest",
+    "test:watch": "npx jest --watch",
+    "test:coverage": "npx jest --coverage",
+    "audit": "npm audit --production"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
+  "keywords": [
+    "语文",
+    "学习",
+    "小学",
+    "教育",
+    "electron"
+  ],
+  "author": "语文小霸王开发团队",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.0.0",
+    "husky": "^9.1.7",
+    "jest": "^30.4.2",
+    "lint-staged": "^17.0.8",
+    "prettier": "^3.9.3"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "edge-tts-nodejs": "^1.0.0",
+    "express": "^4.18.0",
+    "mongoose": "^7.0.0"
+  },
+  "build": {
+    "appId": "com.yuwen.xiaobawang",
+    "productName": "语文小霸王",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

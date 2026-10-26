@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>语文小霸王</title>
+    <link rel="stylesheet" href="styles/main.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <!-- 顶部导航栏 -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="logo">
+            <i class="fas fa-book-open"></i>
+            <span>语文小霸王</span>
+          </div>
+        </div>
+
+        <nav class="main-nav">
+          <a href="#" class="nav-item active" data-section="home">
+            <i class="fas fa-home"></i>
+            <span>首页</span>
+          </a>
+          <a href="#" class="nav-item" data-section="learn">
+            <i class="fas fa-graduation-cap"></i>
+            <span>学习</span>
+          </a>
+          <a href="#" class="nav-item" data-section="chengyu-game">
+            <i class="fas fa-puzzle-piece"></i>
+            <span>成语纵横</span>
+          </a>
+          <a href="#" class="nav-item" data-section="match-game">
+            <i class="fas fa-th"></i>
+            <span>消消乐</span>
+          </a>
+          <a href="#" class="nav-item" data-section="smart-quiz">
+            <i class="fas fa-brain"></i>
+            <span>AI练习</span>
+          </a>
+          <a href="#" class="nav-item" data-section="exam-print">
+            <i class="fas fa-file-alt"></i>
+            <span>组卷</span>
+          </a>
+          <a href="#" class="nav-item" data-section="stats">
+            <i class="fas fa-chart-bar"></i>
+            <span>统计</span>
+          </a>
+        </nav>
+
+        <div class="header-right">
+          <!-- 用户等级和积分 -->
+          <div class="user-gamification">
+            <div class="user-level-badge">
+              <span class="level-icon" id="user-level-icon">🌱</span>
+              <span class="level-text" id="user-level">Lv.1</span>
+            </div>
+            <div class="user-exp-bar">
+              <div class="exp-fill" id="exp-bar" style="width: 0%"></div>
+              <span class="exp-text" id="exp-text">0/100</span>
+            </div>
+            <div class="user-points-display">
+              <span class="points-icon">🌟</span>
+              <span class="points-value" id="user-points">0</span>
+            </div>
+          </div>
+
+          <div class="user-info">
+            <div class="user-avatar">
+              <i class="fas fa-user"></i>
+            </div>
+            <span class="username">小学生</span>
+            <span class="user-title" id="user-title">语文新手</span>
+          </div>
+          <button class="btn-settings" title="成就中心" onclick="showAchievements()">
+            <i class="fas fa-trophy"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- 主内容区域 -->
+      <main class="main-content">
+        <!-- ========== 首页 ========== -->
+        <section id="home" class="content-section active">
+          <div class="welcome-banner">
+            <div class="welcome-text">
+              <h1>欢迎来到语文小霸王！</h1>
+              <p>每天一篇课文，10分钟轻松学语文</p>
+            </div>
+            <div class="welcome-character">
+              <div class="character-placeholder">
+                <i class="fas fa-child"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- 游戏化面板：签到 + 成长树 + 今日成就 -->
+          <div class="game-panels">
+            <!-- 每日签到 -->
+            <div class="game-panel sign-panel-container" id="sign-panel">
+              <!-- 由JS动态生成 -->
+            </div>
+
+            <!-- 成长树 -->
+            <div class="game-panel tree-panel-container" id="tree-panel">
+              <!-- 由JS动态生成 -->
+            </div>
+
+            <!-- 今日任务 -->
+            <div class="game-panel daily-tasks">
+              <h3>📋 今日任务</h3>
+              <div class="task-list">
+                <div class="task-item" id="task-sign">
+                  <span class="task-icon">📅</span>
+                  <span class="task-name">每日签到</span>
+                  <span class="task-reward">+10积分</span>
+                  <span class="task-status">⬜</span>
+                </div>
+                <div class="task-item" id="task-lesson">
+                  <span class="task-icon">📖</span>
+                  <span class="task-name">完成一篇课文</span>
+                  <span class="task-reward">+20积分</span>
+                  <span class="task-status">⬜</span>
+                </div>
+                <div class="task-item" id="task-perfect">
+                  <span class="task-icon">💯</span>
+                  <span class="task-name">获得满分</span>
+                  <span class="task-reward">+30积分</span>
+                  <span class="task-status">⬜</span>
+                </div>
+                <div class="task-item" id="task-streak">
+                  <span class="task-icon">🔥</span>
+                  <span class="task-name">连续学习</span>
+                  <span class="task-reward">额外奖励</span>
+                  <span class="task-status">⬜</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 最近徽章展示 -->
+          <div class="recent-badges" id="recent-badges">
+            <h3>🎖️ 最近解锁</h3>
+            <div class="badges-scroll" id="badges-scroll">
+              <!-- 由JS动态生成 -->
+            </div>
+          </div>
+
+          <!-- 护眼设置面板 -->
+          <div class="eyecare-panel-container" id="eyecare-panel">
+            <!-- 由JS动态生成 -->
+          </div>
+
+          <div class="grade-selection">
+            <h2>选择年级，开始今天的学习</h2>
+            <div class="grade-cards">
+              <div class="grade-card" data-grade="2">
+                <div class="grade-icon">二年级</div>
+                <div class="grade-desc">L2 基础阅读</div>
+                <div class="grade-count" id="grade-count-2">30篇课文</div>
+              </div>
+              <div class="grade-card" data-grade="3">
+                <div class="grade-icon">三年级</div>
+                <div class="grade-desc">L3 阅读入门</div>
+                <div class="grade-count" id="grade-count-3">30篇课文</div>
+              </div>
+              <div class="grade-card" data-grade="4">
+                <div class="grade-icon">四年级</div>
+                <div class="grade-desc">L4 阅读提升</div>
+                <div class="grade-count" id="grade-count-4">30篇课文</div>
+              </div>
+              <div class="grade-card" data-grade="5">
+                <div class="grade-icon">五年级</div>
+                <div class="grade-desc">L5 阅读拓展</div>
+                <div class="grade-count" id="grade-count-5">30篇课文</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========== 学习模块 - 课文列表 ========== -->
+        <section id="learn" class="content-section">
+          <div class="section-header">
+            <h2 id="learn-title">学习中心</h2>
+            <div class="section-controls">
+              <select id="grade-select" class="select-control">
+                <option value="2">二年级</option>
+                <option value="3">三年级</option>
+                <option value="4">四年级</option>
+                <option value="5">五年级</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="content-grid" id="content-grid">
+            <!-- 课文卡片将通过JS动态生成 -->
+          </div>
+        </section>
+
+        <!-- ========== 阅读界面 ========== -->
+        <section id="reading" class="content-section reading-view">
+          <div class="reading-header">
+            <button class="btn-back" id="btn-back-to-learn">
+              <i class="fas fa-arrow-left"></i>
+              <span>返回</span>
+            </button>
+            <div class="reading-title-area">
+              <h2 id="reading-title">课文标题</h2>
+              <span class="reading-meta" id="reading-meta"></span>
+            </div>
+            <div class="reading-controls">
+              <button class="btn-control" id="btn-font-size" title="字体大小">
+                <i class="fas fa-text-height"></i>
+              </button>
+              <button class="btn-control" id="btn-theme" title="主题">
+                <i class="fas fa-palette"></i>
+              </button>
+              <button class="btn-control" id="btn-bookmark" title="书签">
+                <i class="fas fa-bookmark"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="reading-content">
+            <div class="reading-main">
+              <div class="reading-text" id="reading-text">
+                <!-- 文本内容将通过JavaScript动态加载 -->
+              </div>
+
+              <!-- 阅读完成按钮 -->
+              <div class="reading-footer">
+                <button class="btn-next-step" id="btn-go-explanation">
+                  <i class="fas fa-chalkboard-teacher"></i>
+                  <span>阅读完成，开始讲解</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="reading-sidebar">
+              <div class="tts-controls">
+                <h3><i class="fas fa-volume-up"></i> 语音朗读</h3>
+                <div class="tts-status" id="tts-status">就绪</div>
+                <div class="tts-buttons">
+                  <button class="btn-tts" id="btn-play" title="播放">
+                    <i class="fas fa-play"></i>
+                  </button>
+                  <button class="btn-tts" id="btn-pause" title="暂停">
+                    <i class="fas fa-pause"></i>
+                  </button>
+                  <button class="btn-tts" id="btn-stop" title="停止">
+                    <i class="fas fa-stop"></i>
+                  </button>
+                </div>
+
+                <div class="tts-settings">
+                  <div class="setting-item">
+                    <label>语音：</label>
+                    <select id="voice-select" class="select-control">
+                      <option value="zh-CN-XiaoxiaoNeural">晓晓（女声）</option>
+                      <option value="zh-CN-YunxiNeural">云希（男声）</option>
+                      <option value="zh-CN-YunjianNeural">云健（男声）</option>
+                    </select>
+                  </div>
+
+                  <div class="setting-item">
+                    <label>语速：</label>
+                    <input type="range" id="speed-range" min="0.5" max="2" step="0.1" value="1" />
+                    <span id="speed-value">1.0x</span>
+                  </div>
+
+                  <div class="setting-item">
+                    <label>情感：</label>
+                    <select id="emotion-select" class="select-control">
+                      <option value="default">默认</option>
+                      <option value="cheerful">欢快</option>
+                      <option value="serious">严肃</option>
+                      <option value="sad">悲伤</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="reading-tools">
+                <h3><i class="fas fa-tools"></i> 阅读工具</h3>
+                <div class="tool-buttons">
+                  <button class="btn-tool" id="btn-highlight" title="标注">
+                    <i class="fas fa-highlighter"></i>
+                    <span>标注生词</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========== 课文讲解界面 ========== -->
+        <section id="explanation" class="content-section">
+          <div class="explanation-header">
+            <button class="btn-back" id="btn-back-to-reading">
+              <i class="fas fa-arrow-left"></i>
+              <span>回到课文</span>
+            </button>
+            <h2 id="explanation-title">课文讲解</h2>
+            <div class="explanation-progress">
+              <span class="step-indicator active" data-step="1">1. 课文阅读</span>
+              <i class="fas fa-chevron-right"></i>
+              <span class="step-indicator active" data-step="2">2. 课文讲解</span>
+              <i class="fas fa-chevron-right"></i>
+              <span class="step-indicator" data-step="3">3. 阅读理解</span>
+            </div>
+          </div>
+
+          <div class="explanation-content" id="explanation-content">
+            <!-- 讲解内容将通过JS动态加载 -->
+          </div>
+
+          <div class="explanation-footer">
+            <button class="btn-next-step" id="btn-go-practice">
+              <i class="fas fa-pencil-alt"></i>
+              <span>讲解完成，开始练习</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ========== 阅读理解练习界面 ========== -->
+        <section id="practice" class="content-section">
+          <div class="practice-header">
+            <button class="btn-back" id="btn-back-to-explanation">
+              <i class="fas fa-arrow-left"></i>
+              <span>回到讲解</span>
+            </button>
+            <h2 id="practice-title">阅读理解</h2>
+            <div class="explanation-progress">
+              <span class="step-indicator active" data-step="1">1. 课文阅读</span>
+              <i class="fas fa-chevron-right"></i>
+              <span class="step-indicator active" data-step="2">2. 课文讲解</span>
+              <i class="fas fa-chevron-right"></i>
+              <span class="step-indicator active" data-step="3">3. 阅读理解</span>
+            </div>
+          </div>
+
+          <div class="practice-content" id="practice-content">
+            <!-- 练习内容将通过JS动态加载 -->
+          </div>
+        </section>
+
+        <!-- ========== 练习结果界面 ========== -->
+        <section id="result" class="content-section">
+          <div class="result-container" id="result-container">
+            <!-- 结果将通过JS动态加载 -->
+          </div>
+        </section>
+
+        <!-- ========== 成语纵横游戏 ========== -->
+        <section id="chengyu-game" class="content-section">
+          <div class="section-header">
+            <h2>成语纵横</h2>
+            <div class="section-controls">
+              <select
+                id="chengyu-level-select"
+                class="select-control"
+                onchange="changeChengYuLevel(this.value)"
+              >
+                <option value="1">第1关 - 简单</option>
+                <option value="2">第2关 - 简单</option>
+                <option value="3">第3关 - 中等</option>
+                <option value="4">第4关 - 中等</option>
+                <option value="5">第5关 - 困难</option>
+                <option value="6">第6关 - 困难</option>
+                <option value="7">第7关 - 挑战</option>
+                <option value="8">第8关 - 挑战</option>
+                <option value="9">第9关 - 大师</option>
+                <option value="10">第10关 - 大师</option>
+              </select>
+            </div>
+          </div>
+          <div class="chengyu-game-content" id="chengyu-game-content">
+            <!-- 成语纵横游戏内容将通过JS动态加载 -->
+          </div>
+        </section>
+
+        <!-- ========== AI智能练习 ========== -->
+        <section id="smart-quiz" class="content-section">
+          <div class="section-header">
+            <h2>AI智能练习</h2>
+            <div class="section-controls">
+              <select
+                id="smart-quiz-grade-select"
+                class="select-control"
+                onchange="changeSmartQuizGrade(this.value)"
+              >
+                <option value="2">二年级</option>
+                <option value="3">三年级</option>
+                <option value="4">四年级</option>
+                <option value="5">五年级</option>
+              </select>
+            </div>
+          </div>
+          <div class="smart-quiz-content" id="smart-quiz-content">
+            <!-- AI智能练习内容将通过JS动态加载 -->
+          </div>
+        </section>
+
+        <!-- ========== 成语消消乐 ========== -->
+        <section id="match-game" class="content-section">
+          <div class="section-header">
+            <h2>成语消消乐</h2>
+          </div>
+          <div class="match-game-content" id="match-game-content">
+            <!-- 成语消消乐内容将通过JS动态加载 -->
+          </div>
+        </section>
+
+        <!-- ========== 自动组卷与打印 ========== -->
+        <section id="exam-print" class="content-section">
+          <div class="section-header">
+            <h2>自动组卷</h2>
+            <div class="section-controls">
+              <select
+                id="exam-grade-select"
+                class="select-control"
+                onchange="examSelectGrade(parseInt(this.value))"
+              >
+                <option value="2">二年级</option>
+                <option value="3">三年级</option>
+                <option value="4">四年级</option>
+                <option value="5">五年级</option>
+              </select>
+            </div>
+          </div>
+          <div class="exam-print-content" id="exam-print-content">
+            <!-- 组卷内容将通过JS动态加载 -->
+          </div>
+        </section>
+
+        <!-- ========== 统计模块 ========== -->
+        <section id="stats" class="content-section">
+          <div class="section-header">
+            <h2>学习统计</h2>
+            <div class="section-controls">
+              <select id="stats-period-select" class="select-control">
+                <option value="week">本周</option>
+                <option value="month">本月</option>
+                <option value="all">全部</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fas fa-clock"></i></div>
+              <div class="stat-info">
+                <h3>学习时长</h3>
+                <p class="stat-value" id="stat-time">0分钟</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fas fa-book"></i></div>
+              <div class="stat-info">
+                <h3>完成课文</h3>
+                <p class="stat-value" id="stat-lessons">0篇</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+              <div class="stat-info">
+                <h3>练习正确率</h3>
+                <p class="stat-value" id="stat-accuracy">0%</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fas fa-trophy"></i></div>
+              <div class="stat-info">
+                <h3>连续学习</h3>
+                <p class="stat-value" id="stat-streak">0天</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-chart">
+            <h3>学习趋势</h3>
+            <div class="chart-placeholder">
+              <div class="chart-bars" id="chart-bars">
+                <!-- 图表将通过JS动态生成 -->
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- 底部状态栏 -->
+      <footer class="app-footer">
+        <div class="footer-left">
+          <span class="version">v1.0.0</span>
+        </div>
+        <div class="footer-center">
+          <span class="status" id="app-status">就绪</span>
+        </div>
+        <div class="footer-right">
+          <span class="time" id="current-time"></span>
+        </div>
+      </footer>
+    </div>
+
+    <!-- 脚本加载顺序：数据 → 游戏化 → 主逻辑 → TTS → 阅读 -->
+    <script src="data/content-grade2.js"></script>
+    <script src="data/content-grade2-extra.js"></script>
+    <script src="data/content-grade2-extra2.js"></script>
+    <script src="data/content-grade2-extra3.js"></script>
+    <script src="data/content-grade3.js"></script>
+    <script src="data/content-grade3-extra.js"></script>
+    <script src="data/content-grade3-extra2.js"></script>
+    <script src="data/content-grade3-extra3.js"></script>
+    <script src="data/content-grade4.js"></script>
+    <script src="data/content-grade4-extra.js"></script>
+    <script src="data/content-grade4-extra2.js"></script>
+    <script src="data/content-grade4-extra3.js"></script>
+    <script src="data/content-grade5.js"></script>
+    <script src="data/content-grade5-extra.js"></script>
+    <script src="data/content-grade5-extra2.js"></script>
+    <script src="data/content-grade5-extra3.js"></script>
+    <script src="data/chengyu-data.js"></script>
+    <script src="scripts/gamification.js"></script>
+    <script src="scripts/eyecare.js"></script>
+    <script src="scripts/chengyu-game.js"></script>
+    <script src="scripts/chengyu-match.js"></script>
+    <script src="scripts/smart-quiz.js"></script>
+    <script src="scripts/exam-print.js"></script>
+    <script src="scripts/app.js"></script>
+    <script src="scripts/tts.js"></script>
+    <script src="scripts/reading.js"></script>
+  </body>
+</html>
