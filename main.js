@@ -195,61 +195,125 @@ function buildSSML(text, voice, style, rate, pitch) {
 </speak>`;
 }
 
-// 使用 edge-tts CLI 生成音频
-function generateEdgeTTS(text, options) {
-  return new Promise((resolve, reject) => {
-    const {
-      voice = 'zh-CN-XiaoxiaoNeural',
-      rate = 1.0,
-      pitch = 1.0,
-      style = 'default',
-    } = options || {};
+// 解析版本号为可比较数组
+function parseVersion(v) {
+  const m = /(\d+)\.(\d+)\.(\d+)/.exec(v || '');
+  if (!m) return null;
+  return [Number(m[1]), Number(m[2]), Number(m[3])];
+}
 
-    // 创建临时文件
-    const tmpDir = os.tmpdir();
-    const tmpFile = path.join(tmpDir, `yuwen-tts-${Date.now()}.mp3`);
-    ttsAudioPath = tmpFile;
+function versionGte(v, min) {
+  const p = parseVersion(v);
+  if (!p) return false;
+  for (let i = 0; i < 3; i++) {
+    if (p[i] > min[i]) return true;
+    if (p[i] < min[i]) return false;
+  }
+  return true;
+}
 
-    // 构建参数
-    const args = [];
-    const ssml = buildSSML(text, voice, style, rate, pitch);
-    args.push('--text', ssml);
-    args.push('--voice', voice);
-    args.push('--write-media', tmpFile);
+// edge-tts Python CLI 需要 ≥ 6.1.9 才内置 Sec-MS-GEC 令牌，避免 403 风控
+const MIN_EDGE_TTS_VERSION = [6, 1, 9];
 
-    log('INFO', 'Edge TTS 开始合成', { voice, style, rate, pitch, textLength: text.length });
-
-    // 使用 spawn 实时获取进度
-    const proc = spawn('edge-tts', args, {
-      windowsHide: true,
-      timeout: 60000, // 60秒超时
-    });
-
-    ttsProcess = proc;
-
-    let stderr = '';
-    proc.stderr.on('data', chunk => {
-      stderr += chunk.toString();
-    });
-
-    proc.on('close', code => {
-      ttsProcess = null;
-      if (code === 0 && fs.existsSync(tmpFile)) {
-        const stat = fs.statSync(tmpFile);
-        log('INFO', 'Edge TTS 合成成功', { file: tmpFile, size: stat.size });
-        resolve({ success: true, file: tmpFile, size: stat.size });
-      } else {
-        log('ERROR', 'Edge TTS 合成失败', { code, stderr });
-        reject(new Error(`edge-tts 退出码 ${code}: ${stderr}`));
-      }
-    });
-
-    proc.on('error', err => {
-      ttsProcess = null;
-      log('ERROR', 'Edge TTS 进程错误', err.message);
-      reject(err);
+// 缓存 CLI 版本检测结果，避免每次合成都 spawn 一次
+let _cliVersionCache = null;
+function checkEdgeTTSVersion() {
+  if (_cliVersionCache !== null) return _cliVersionCache;
+  _cliVersionCache = new Promise(resolve => {
+    execFile('edge-tts', ['--version'], { windowsHide: true, timeout: 5000 }, (err, stdout) => {
+      if (err) resolve({ available: false, error: err.message });
+      else resolve({ available: true, version: stdout.trim() });
     });
   });
+  return _cliVersionCache;
+}
+
+// 使用 edge-tts CLI 生成音频
+async function generateEdgeTTS(text, options) {
+  const {
+    voice = 'zh-CN-XiaoxiaoNeural',
+    rate = 1.0,
+    pitch = 1.0,
+    style = 'default',
+  } = options || {};
+
+  // 合成前检测 CLI 版本
+  const cliInfo = await checkEdgeTTSVersion();
+  if (!cliInfo.available) {
+    throw new Error('edge-tts CLI 未安装，请先执行：pip install edge-tts');
+  }
+  if (!versionGte(cliInfo.version, MIN_EDGE_TTS_VERSION)) {
+    log('WARN', `edge-tts 版本 ${cliInfo.version} 偏低，建议 ≥ ${MIN_EDGE_TTS_VERSION.join('.')}（Sec-MS-GEC 令牌支持）`);
+  }
+
+  // 创建临时文件
+  const tmpDir = os.tmpdir();
+  const tmpFile = path.join(tmpDir, `yuwen-tts-${Date.now()}.mp3`);
+  ttsAudioPath = tmpFile;
+
+  // 构建参数
+  const args = [];
+  const ssml = buildSSML(text, voice, style, rate, pitch);
+  args.push('--text', ssml);
+  args.push('--voice', voice);
+  args.push('--write-media', tmpFile);
+
+  log('INFO', 'Edge TTS 开始合成', { voice, style, rate, pitch, textLength: text.length });
+
+  // 403/401 时最多重试 3 次（退避 2s/4s），其余错误直接抛出
+  const MAX_RETRIES = 3;
+  let lastErr = null;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        // 使用 spawn 实时获取进度
+        const proc = spawn('edge-tts', args, {
+          windowsHide: true,
+          timeout: 60000, // 60秒超时
+        });
+
+        ttsProcess = proc;
+
+        let stderr = '';
+        proc.stderr.on('data', chunk => {
+          stderr += chunk.toString();
+        });
+
+        proc.on('close', code => {
+          ttsProcess = null;
+          if (code === 0 && fs.existsSync(tmpFile)) {
+            const stat = fs.statSync(tmpFile);
+            log('INFO', 'Edge TTS 合成成功', { file: tmpFile, size: stat.size });
+            resolve({ success: true, file: tmpFile, size: stat.size });
+          } else {
+            log('ERROR', 'Edge TTS 合成失败', { code, stderr });
+            reject(new Error(`edge-tts 退出码 ${code}: ${stderr}`));
+          }
+        });
+
+        proc.on('error', err => {
+          ttsProcess = null;
+          log('ERROR', 'Edge TTS 进程错误', err.message);
+          reject(err);
+        });
+      });
+      return result;
+    } catch (err) {
+      lastErr = err;
+      const isAuthError = /403|401/i.test(String(err.message || err));
+      if (isAuthError && attempt < MAX_RETRIES) {
+        const backoff = 2000 * attempt;
+        log('WARN', `Edge TTS 认证失败，${backoff}ms 后重试`, { attempt, err: err.message });
+        await new Promise(r => setTimeout(r, backoff));
+        // 清理上一次残留的临时文件
+        try { if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile); } catch (_) { /* ignore */ }
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
 }
 
 // IPC: 合成语音并返回音频文件路径
@@ -295,17 +359,18 @@ ipcMain.handle('tts-stop', async () => {
   return true;
 });
 
-// IPC: 检查 edge-tts 是否可用
+// IPC: 检查 edge-tts 是否可用及版本
 ipcMain.handle('tts-check', async () => {
-  return new Promise(resolve => {
-    execFile('edge-tts', ['--version'], { windowsHide: true, timeout: 5000 }, (err, stdout) => {
-      if (err) {
-        resolve({ available: false, error: err.message });
-      } else {
-        resolve({ available: true, version: stdout.trim() });
-      }
-    });
-  });
+  const info = await checkEdgeTTSVersion();
+  if (!info.available) {
+    return { available: false, error: info.error };
+  }
+  return {
+    available: true,
+    version: info.version,
+    minRecommendedVersion: MIN_EDGE_TTS_VERSION.join('.'),
+    versionOk: versionGte(info.version, MIN_EDGE_TTS_VERSION),
+  };
 });
 
 // 应用退出时清理TTS临时文件

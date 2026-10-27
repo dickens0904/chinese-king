@@ -332,6 +332,11 @@ async function speakWithEdgeTTS(text) {
       TTSState.isPlaying = false;
       TTSState.isPaused = false;
       TTSState.audioElement = null;
+      // 清理边界计时器，避免降级到 Web Speech 后旧定时器继续触发高亮
+      if (TTSState._boundaryTimer) {
+        clearInterval(TTSState._boundaryTimer);
+        TTSState._boundaryTimer = null;
+      }
       updateTTSUI();
       updateTTSStatus('播放出错');
       showNotification('音频播放出错，正在降级...', 'warning');
