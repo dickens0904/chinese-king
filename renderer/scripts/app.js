@@ -184,6 +184,11 @@ function initApp() {
   Logger.info('初始化自动组卷模块...');
   initExamPrint();
 
+  Logger.info('初始化学习足迹...');
+  if (typeof initFootprint === 'function') {
+    initFootprint();
+  }
+
   Logger.info('应用初始化完成');
 
   // 运行模块自检
@@ -455,6 +460,10 @@ function bindEvents() {
 
   document.getElementById('btn-go-explanation').addEventListener('click', () => {
     stopTTSIfPlaying();
+    // 学习足迹：完成阅读一课（同课同日只记一次）
+    if (typeof recordReadingFootprint === 'function') {
+      recordReadingFootprint(AppState.currentContent);
+    }
     showExplanation();
     switchSection('explanation');
   });
@@ -473,6 +482,11 @@ function switchSection(sectionName) {
     section.classList.toggle('active', section.id === sectionName);
   });
   AppState.currentSection = sectionName;
+
+  // 切换到首页时刷新学习足迹卡片
+  if (sectionName === 'home' && typeof renderFootprint === 'function') {
+    renderFootprint();
+  }
 
   // 切换到学习中心时加载内容列表
   if (sectionName === 'learn') {
@@ -895,6 +909,11 @@ function showResult() {
 
   // 记录今日完成课文
   recordTodayLesson();
+
+  // 学习足迹：记录本次练习成绩（同课同日更新为最新成绩）
+  if (typeof recordPracticeFootprint === 'function') {
+    recordPracticeFootprint(lesson, correct, total);
+  }
 
   // 播放音效
   if (isPerfect) {

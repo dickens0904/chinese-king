@@ -195,6 +195,52 @@ function buildSSML(text, voice, style, rate, pitch) {
 </speak>`;
 }
 
+// ============ edge-tts-nodejs 库方式合成（首选尝试） ============
+// 经阅读 node_modules/edge-tts-nodejs 源码（src/lib/generate.js 与 dist/lib/generate.js）确认，
+// 该库并非纯 JS 合成实现：其 toVoice() 内部仍是 child_process.exec 调用同名的 edge-tts Python CLI，
+// 且与现有 SSML 合成流程不兼容、在 Windows 上实际不可用：
+//   1) toVoice() 无返回值、无完成/错误回调，调用方拿不到 Promise/Buffer，也无法感知合成成败；
+//   2) 文本以单引号拼进命令行（--text '...'），Windows cmd 不识别单引号，
+//      含空格/引号/换行的中文文本必然导致参数解析失败；
+//   3) 不支持 SSML（无法携带 mstts:express-as 情感样式与 prosody 语速语调）。
+// 因此这里保留“库探测 + 快速失败”入口：库加载失败或 API 不满足契约时立即降级到下方 CLI 路径；
+// CLI 路径是实际可靠的合成主路径，同时也是约定的 fallback，两者都失败时返回中文错误信息。
+let _edgeTtsLib = null;
+let _edgeTtsLibProbed = false;
+function getEdgeTtsLib() {
+  if (_edgeTtsLibProbed) return _edgeTtsLib;
+  _edgeTtsLibProbed = true;
+  try {
+    const lib = require('edge-tts-nodejs');
+    if (lib && typeof lib.toVoice === 'function') {
+      _edgeTtsLib = lib;
+    } else {
+      log('WARN', 'edge-tts-nodejs 库 API 形态不符（缺少 toVoice），将直接使用 CLI 路径合成');
+    }
+  } catch (e) {
+    log('WARN', 'edge-tts-nodejs 库加载失败，将直接使用 CLI 路径合成', e.message);
+  }
+  return _edgeTtsLib;
+}
+
+// 首选尝试：库方式合成。库 API 无法保证“音频落地后返回可播放路径”时快速失败，由 CLI 路径接管。
+async function synthesizeViaLibrary(text, options) {
+  if (typeof text !== 'string' || !text.trim()) {
+    throw new Error('合成文本为空');
+  }
+  const lib = getEdgeTtsLib();
+  if (!lib) {
+    throw new Error('edge-tts-nodejs 库不可用');
+  }
+  log('INFO', '尝试库方式合成（edge-tts-nodejs）', {
+    voice: options && options.voice,
+    textLength: text.length,
+  });
+  // 该库的 toVoice 为“发射后不管”式 API：无 Promise/回调/Buffer 返回（内部仍依赖 edge-tts CLI），
+  // 若不等待音频写入就返回路径，会破坏 tts-synthesize“返回可播放文件”的契约 → 判定不适用，转 CLI。
+  throw new Error('edge-tts-nodejs 无完成/错误回调与 Buffer 返回，与现有 SSML 流程不兼容');
+}
+
 // 解析版本号为可比较数组
 function parseVersion(v) {
   const m = /(\d+)\.(\d+)\.(\d+)/.exec(v || '');
@@ -228,7 +274,7 @@ function checkEdgeTTSVersion() {
   return _cliVersionCache;
 }
 
-// 使用 edge-tts CLI 生成音频
+// CLI 合成路径（fallback）：使用 edge-tts CLI 生成音频
 async function generateEdgeTTS(text, options) {
   const {
     voice = 'zh-CN-XiaoxiaoNeural',
@@ -243,7 +289,10 @@ async function generateEdgeTTS(text, options) {
     throw new Error('edge-tts CLI 未安装，请先执行：pip install edge-tts');
   }
   if (!versionGte(cliInfo.version, MIN_EDGE_TTS_VERSION)) {
-    log('WARN', `edge-tts 版本 ${cliInfo.version} 偏低，建议 ≥ ${MIN_EDGE_TTS_VERSION.join('.')}（Sec-MS-GEC 令牌支持）`);
+    log(
+      'WARN',
+      `edge-tts 版本 ${cliInfo.version} 偏低，建议 ≥ ${MIN_EDGE_TTS_VERSION.join('.')}（Sec-MS-GEC 令牌支持）`
+    );
   }
 
   // 创建临时文件
@@ -307,13 +356,34 @@ async function generateEdgeTTS(text, options) {
         log('WARN', `Edge TTS 认证失败，${backoff}ms 后重试`, { attempt, err: err.message });
         await new Promise(r => setTimeout(r, backoff));
         // 清理上一次残留的临时文件
-        try { if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile); } catch (_) { /* ignore */ }
+        try {
+          if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+        } catch (_) {
+          /* ignore */
+        }
         continue;
       }
       throw err;
     }
   }
   throw lastErr;
+}
+
+// 将合成失败转换为面向用户的中文错误提示
+function toFriendlyTTSError(err) {
+  const raw = String((err && err.message) || err || '');
+  if (/ENOENT|不是内部或外部命令|不是内部或外部指令|not recognized|无法将/i.test(raw)) {
+    return '语音合成不可用：未检测到语音合成工具，请先执行 pip install edge-tts 后重启应用';
+  }
+  if (/\b(401|403)\b/.test(raw)) {
+    return '语音合成失败：服务鉴权未通过，请检查网络连接后重试';
+  }
+  if (
+    /timeout|timed out|ETIMEDOUT|ENOTFOUND|ECONNREFUSED|EAI_AGAIN|getaddrinfo|network/i.test(raw)
+  ) {
+    return '语音合成不可用：请检查网络连接';
+  }
+  return '语音合成不可用：请检查网络连接（' + raw.slice(0, 80) + '）';
 }
 
 // IPC: 合成语音并返回音频文件路径
@@ -333,11 +403,18 @@ ipcMain.handle('tts-synthesize', async (event, text, options) => {
       }
     }
 
-    const result = await generateEdgeTTS(text, options);
+    // 首选：edge-tts-nodejs 库方式合成；库不可用或失败时降级到 edge-tts CLI 路径（fallback）
+    let result;
+    try {
+      result = await synthesizeViaLibrary(text, options);
+    } catch (libErr) {
+      log('INFO', '库方式合成不可用，降级到 edge-tts CLI 路径', libErr.message);
+      result = await generateEdgeTTS(text, options);
+    }
     return result;
   } catch (err) {
     log('ERROR', 'tts-synthesize 失败', err.message);
-    return { success: false, error: err.message };
+    return { success: false, error: toFriendlyTTSError(err) };
   }
 });
 

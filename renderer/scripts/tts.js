@@ -120,6 +120,7 @@ async function initTTS() {
   console.log('TTS模块初始化...');
 
   bindTTSEvents();
+  registerTTSErrorListener();
   loadTTSSettings();
 
   // 检测 Edge TTS 可用性
@@ -183,6 +184,18 @@ function bindTTSEvents() {
     emotionSelect.addEventListener('change', e => {
       TTSState.currentEmotion = e.target.value;
       saveTTSSettings();
+    });
+  }
+}
+
+// ============ 错误提示 ============
+// 监听主进程 tts-error 通道，用现有通知样式向用户展示明确的中文错误信息
+function registerTTSErrorListener() {
+  if (window.electronAPI && window.electronAPI.onTTSError) {
+    window.electronAPI.onTTSError(error => {
+      const msg = typeof error === 'string' ? error : (error && error.message) || '语音合成出错';
+      console.error('TTS 错误:', msg);
+      showNotification(msg, 'error');
     });
   }
 }
@@ -297,6 +310,8 @@ async function speakWithEdgeTTS(text) {
 
     if (!result.success) {
       console.error('Edge TTS 合成失败:', result.error);
+      // 向用户展示主进程返回的中文错误提示（库方式与 CLI 方式都失败时）
+      showNotification(result.error || '语音合成不可用：请检查网络连接', 'error');
       // 降级到 Web Speech API
       console.warn('降级到 Web Speech API');
       TTSState.engine = 'webspeech';

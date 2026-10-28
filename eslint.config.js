@@ -123,6 +123,12 @@ module.exports = [
         startReading: 'readonly',
         stopReading: 'readonly',
 
+        // 项目全局变量（学习足迹）
+        initFootprint: 'readonly',
+        renderFootprint: 'readonly',
+        recordReadingFootprint: 'readonly',
+        recordPracticeFootprint: 'readonly',
+
         // 项目全局变量（应用逻辑）
         AppState: 'writable',
         loadContentList: 'readonly',
@@ -219,6 +225,17 @@ module.exports = [
     files: ['**/*.test.js', '**/*.spec.js', '**/tests/**/*.js'],
     languageOptions: {
       globals: {
+        // Node.js（测试环境）
+        require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+
+        // Jest
         describe: 'readonly',
         it: 'readonly',
         test: 'readonly',
